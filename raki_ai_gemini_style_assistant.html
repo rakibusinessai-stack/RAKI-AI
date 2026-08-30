@@ -1,0 +1,1471 @@
+<!DOCTYPE html>
+<html lang="en" class="dark h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAKI AI - assistant</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        gemini: {
+                            bg: '#0e0f12',
+                            card: '#181a20',
+                            sidebar: '#13151b',
+                            border: '#2a2d3d',
+                            accentBlue: '#4285f4',
+                            accentPurple: '#9b51e0',
+                            accentPink: '#e91e63',
+                        }
+                    },
+                    backgroundImage: {
+                        'raki-gradient': 'linear-gradient(135deg, #4285f4 0%, #9b51e0 50%, #e91e63 100%)',
+                        'raki-glow': 'radial-gradient(circle at 50% 0%, rgba(66, 133, 244, 0.15), transparent 70%)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- Marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- Highlight.js for Code Highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        code, pre {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2a2d3d;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3f445d;
+        }
+
+        /* Animated Shimmer Text */
+        .shimmer-text {
+            background: linear-gradient(90deg, #4285f4, #9b51e0, #e91e63, #4285f4);
+            background-size: 300% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmer 6s infinite linear;
+        }
+        @keyframes shimmer {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .prose pre {
+            margin-top: 0.75rem;
+            margin-bottom: 0.75rem;
+            border-radius: 0.75rem;
+            background-color: #121318 !important;
+            border: 1px solid #2a2d3d;
+        }
+        .prose p {
+            margin-bottom: 0.75rem;
+            line-height: 1.6;
+        }
+        .prose ul, .prose ol {
+            margin-left: 1.25rem;
+            margin-bottom: 0.75rem;
+        }
+        .prose ul { list-style-type: disc; }
+        .prose ol { list-style-type: decimal; }
+        .prose table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+        .prose th, .prose td {
+            border: 1px solid #2a2d3d;
+            padding: 0.5rem 0.75rem;
+            text-align: left;
+        }
+        .prose th {
+            background-color: #1f222e;
+        }
+    </style>
+</head>
+
+<body class="bg-gemini-bg text-gray-100 h-full flex flex-col antialiased overflow-hidden">
+
+    <div id="app" class="flex h-full w-full relative overflow-hidden">
+
+        <!-- MOBILE OVERLAY -->
+        <div id="mobileOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 hidden md:hidden transition-opacity"></div>
+
+        <!-- SIDEBAR -->
+        <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-40 w-72 bg-gemini-sidebar border-r border-gemini-border flex flex-col transition-transform duration-300 -translate-x-full md:translate-x-0">
+            
+            <!-- Sidebar Header -->
+            <div class="p-4 flex items-center justify-between border-b border-gemini-border/50">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-raki-gradient flex items-center justify-center text-white font-bold shadow-lg shadow-purple-500/20">
+                        <i class="fa-solid font-black text-sm">R</i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg leading-none tracking-wide text-white">RAKI <span class="shimmer-text">AI</span></h1>
+                        <span class="text-[10px] text-gray-400 font-medium tracking-wider uppercase">Gemini 2.5 Powered</span>
+                    </div>
+                </div>
+                <button onclick="toggleSidebar()" class="md:hidden text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-gray-800">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- New Chat Button -->
+            <div class="p-3">
+                <button onclick="createNewChat()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gemini-card hover:bg-gray-800/80 border border-gemini-border text-sm font-medium transition-all shadow-sm hover:border-purple-500/50 group">
+                    <i class="fa-solid fa-plus text-purple-400 group-hover:scale-110 transition-transform"></i>
+                    <span>New Conversation</span>
+                </button>
+            </div>
+
+            <!-- Gemini LLM Power Tools Section -->
+            <div class="px-3 py-2 border-y border-gemini-border/30 space-y-1">
+                <div class="text-[10px] font-bold uppercase tracking-wider text-purple-400 px-2 py-1 flex items-center gap-1.5">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Gemini LLM Utilities
+                </div>
+                <button onclick="runThreadSummary()" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-300 hover:bg-gray-800/80 hover:text-white flex items-center gap-2 transition">
+                    <span>✨ Summarize Thread</span>
+                </button>
+                <button onclick="generateQuizModal()" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-300 hover:bg-gray-800/80 hover:text-white flex items-center gap-2 transition">
+                    <span>✨ Test My Knowledge (Quiz)</span>
+                </button>
+            </div>
+
+            <!-- Chat History List -->
+            <div class="flex-1 overflow-y-auto px-3 py-2 space-y-1" id="chatHistoryList">
+                <div class="text-xs font-semibold text-gray-500 px-3 py-2 uppercase tracking-wider">Recent Chats</div>
+            </div>
+
+            <!-- Sidebar Footer Controls -->
+            <div class="p-3 border-t border-gemini-border/50 space-y-1 bg-gemini-sidebar/50">
+                <button onclick="openPersonaModal()" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 text-xs font-medium text-gray-300 hover:text-white transition">
+                    <i class="fa-solid fa-user-gear text-blue-400 w-4 text-center"></i>
+                    <span>AI Persona & Instructions</span>
+                </button>
+                <button onclick="openSettingsModal()" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 text-xs font-medium text-gray-300 hover:text-white transition">
+                    <i class="fa-solid fa-sliders text-purple-400 w-4 text-center"></i>
+                    <span>Settings & Audio Voice</span>
+                </button>
+                <button onclick="clearAllHistory()" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-red-500/10 text-xs font-medium text-red-400 hover:text-red-300 transition">
+                    <i class="fa-solid fa-trash-can w-4 text-center"></i>
+                    <span>Clear History</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="flex-1 flex flex-col h-full w-full bg-gemini-bg relative overflow-hidden">
+            
+            <!-- Top Header Bar -->
+            <header class="h-16 border-b border-gemini-border/50 px-4 flex items-center justify-between gap-2 z-10 bg-gemini-bg/80 backdrop-blur-md">
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleSidebar()" class="md:hidden text-gray-400 hover:text-white p-2 rounded-lg hover:bg-gray-800">
+                        <i class="fa-solid fa-bars text-lg"></i>
+                    </button>
+
+                    <!-- Model Selector Pill -->
+                    <div class="relative group">
+                        <button id="modelSelectorBtn" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gemini-card border border-gemini-border text-xs font-semibold text-gray-200 hover:border-purple-500/50 transition">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span id="currentModelLabel">Gemini 2.5 Flash</span>
+                            <i class="fa-solid fa-chevron-down text-[10px] text-gray-400 ml-1"></i>
+                        </button>
+                        
+                        <div class="absolute left-0 top-full mt-2 w-56 bg-gemini-card border border-gemini-border rounded-xl shadow-2xl p-1.5 hidden group-hover:block z-50 backdrop-blur-xl">
+                            <button onclick="switchModel('gemini-2.5-flash-preview-09-2025', 'Gemini 2.5 Flash')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-800 text-xs flex flex-col">
+                                <span class="font-semibold text-gray-200">Gemini 2.5 Flash</span>
+                                <span class="text-[10px] text-gray-400">Fast, smart multimodal reasoning</span>
+                            </button>
+                            <button onclick="switchModel('imagen-4.0-generate-001', 'RAKI Art & Imagen 4')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-800 text-xs flex flex-col mt-0.5">
+                                <span class="font-semibold text-purple-300">RAKI Art (Imagen 4)</span>
+                                <span class="text-[10px] text-gray-400">High quality image generation</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Header Tools -->
+                <div class="flex items-center gap-2">
+                    <button id="searchToggleBtn" onclick="toggleWebSearch()" class="flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium transition-all bg-gray-900 border-gray-700 text-gray-400 hover:text-gray-200">
+                        <i class="fa-solid fa-globe text-xs"></i>
+                        <span class="hidden sm:inline">Google Search</span>
+                        <span id="searchStatusBadge" class="text-[9px] px-1.5 py-0.2 rounded bg-gray-800 text-gray-400">OFF</span>
+                    </button>
+
+                    <button onclick="exportChat()" title="Export Chat Markdown" class="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-gray-800 text-xs">
+                        <i class="fa-solid fa-download"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- CHAT MESSAGES CONTAINER -->
+            <div id="chatContainer" class="flex-1 overflow-y-auto px-4 md:px-12 py-6 space-y-6 w-full max-w-4xl mx-auto">
+                
+                <!-- Welcome Screen -->
+                <div id="welcomeHero" class="flex flex-col items-center justify-center min-h-[65vh] text-center space-y-6">
+                    <div class="relative">
+                        <div class="w-20 h-20 rounded-3xl bg-raki-gradient flex items-center justify-center text-white text-3xl font-black shadow-2xl shadow-purple-500/30 animate-bounce">
+                            R
+                        </div>
+                        <div class="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs border-2 border-gemini-bg">
+                            <i class="fa-solid fa-sparkles"></i>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2 max-w-md">
+                        <h2 class="text-2xl md:text-3xl font-bold tracking-tight">
+                            Hi! I'm <span class="shimmer-text">RAKI AI</span>
+                        </h2>
+                        <p class="text-sm text-gray-400">
+                            Your multimodal AI assistant with live Google Search grounding, Imagen 4 art creation, and Gemini LLM tools.
+                        </p>
+                    </div>
+
+                    <!-- Prompt Suggestion Cards -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-xl text-left pt-2">
+                        <button onclick="usePrompt('Create a clean, responsive Tailwind CSS landing page header component')" class="p-3.5 rounded-2xl bg-gemini-card border border-gemini-border hover:border-blue-500/50 hover:bg-gray-800/60 transition flex flex-col justify-between group">
+                            <span class="text-xs text-gray-200 font-medium group-hover:text-blue-400">Build Tailwind Navbar</span>
+                            <div class="flex justify-between items-center mt-3 text-gray-500 text-xs">
+                                <span>Coding Assistant</span>
+                                <i class="fa-solid fa-code"></i>
+                            </div>
+                        </button>
+                        <button onclick="usePrompt('What are the latest developments in space exploration and astronomical events this month?')" class="p-3.5 rounded-2xl bg-gemini-card border border-gemini-border hover:border-purple-500/50 hover:bg-gray-800/60 transition flex flex-col justify-between group">
+                            <span class="text-xs text-gray-200 font-medium group-hover:text-purple-400">Latest Space Breakthroughs</span>
+                            <div class="flex justify-between items-center mt-3 text-gray-500 text-xs">
+                                <span>Live Web Search</span>
+                                <i class="fa-solid fa-globe"></i>
+                            </div>
+                        </button>
+                        <button onclick="usePrompt('/image A surreal floating island in the clouds with glowing waterfalls and crystal trees')" class="p-3.5 rounded-2xl bg-gemini-card border border-gemini-border hover:border-pink-500/50 hover:bg-gray-800/60 transition flex flex-col justify-between group">
+                            <span class="text-xs text-gray-200 font-medium group-hover:text-pink-400">Generate Fantasy Artwork</span>
+                            <div class="flex justify-between items-center mt-3 text-gray-500 text-xs">
+                                <span>Imagen 4 Art</span>
+                                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                            </div>
+                        </button>
+                        <button onclick="usePrompt('Draft a polite follow-up email after a job interview emphasizing passion and problem solving')" class="p-3.5 rounded-2xl bg-gemini-card border border-gemini-border hover:border-emerald-500/50 hover:bg-gray-800/60 transition flex flex-col justify-between group">
+                            <span class="text-xs text-gray-200 font-medium group-hover:text-emerald-400">Draft Career Email</span>
+                            <div class="flex justify-between items-center mt-3 text-gray-500 text-xs">
+                                <span>Productivity</span>
+                                <i class="fa-solid fa-pen-nib"></i>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Messages Stream -->
+                <div id="messagesLog" class="space-y-6 pb-36"></div>
+            </div>
+
+            <!-- FLOATING INPUT AREA -->
+            <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-gemini-bg via-gemini-bg/95 to-transparent pt-4 pb-4 px-4 md:px-12 z-20">
+                <div class="max-w-4xl mx-auto space-y-2">
+                    
+                    <!-- Quick LLM Action Chips -->
+                    <div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
+                        <span class="text-[10px] uppercase font-bold text-gray-500 mr-1 shrink-0">✨ Quick Tools:</span>
+                        <button onclick="applyLLMTransform('email')" class="shrink-0 px-2.5 py-1 rounded-full bg-gemini-card hover:bg-gray-800 border border-gemini-border text-gray-300 hover:text-white transition">
+                            ✨ Professional Email
+                        </button>
+                        <button onclick="applyLLMTransform('eli5')" class="shrink-0 px-2.5 py-1 rounded-full bg-gemini-card hover:bg-gray-800 border border-gemini-border text-gray-300 hover:text-white transition">
+                            ✨ Explain Simple (ELI5)
+                        </button>
+                        <button onclick="applyLLMTransform('grammar')" class="shrink-0 px-2.5 py-1 rounded-full bg-gemini-card hover:bg-gray-800 border border-gemini-border text-gray-300 hover:text-white transition">
+                            ✨ Fix Grammar & Polish
+                        </button>
+                        <button onclick="runThreadSummary()" class="shrink-0 px-2.5 py-1 rounded-full bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300 transition">
+                            ✨ Summarize Discussion
+                        </button>
+                    </div>
+
+                    <!-- File Attachment Preview -->
+                    <div id="attachmentPreview" class="hidden mb-2 flex items-center gap-2 p-2 bg-gemini-card rounded-xl border border-gemini-border w-fit max-w-xs">
+                        <img id="attachmentThumb" src="" class="w-10 h-10 object-cover rounded-lg">
+                        <div class="overflow-hidden flex-1 text-xs">
+                            <div id="attachmentName" class="font-medium text-gray-200 truncate">image.png</div>
+                            <div class="text-[10px] text-gray-400">Attached Image</div>
+                        </div>
+                        <button onclick="removeAttachment()" class="text-gray-400 hover:text-red-400 p-1">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+
+                    <!-- Textarea Form Shell -->
+                    <form id="chatForm" onsubmit="handleChatSubmit(event)" class="relative flex flex-col bg-gemini-card border border-gemini-border focus-within:border-purple-500/70 rounded-2xl shadow-2xl transition-all duration-200">
+                        
+                        <textarea id="userInput" rows="1" placeholder="Ask RAKI AI anything, or type /image to generate artwork..." onkeydown="handleKeyDown(event)" class="w-full bg-transparent text-gray-100 placeholder-gray-500 text-sm p-4 pr-12 outline-none resize-none max-h-48 min-h-[56px]"></textarea>
+
+                        <!-- Bottom Action Bar inside Textarea -->
+                        <div class="flex items-center justify-between px-3 pb-3 pt-1 border-t border-gemini-border/30">
+                            
+                            <!-- Left Controls -->
+                            <div class="flex items-center gap-1.5">
+                                <input type="file" id="imageFileInput" accept="image/*" class="hidden" onchange="handleFileSelect(event)">
+                                <button type="button" onclick="document.getElementById('imageFileInput').click()" title="Attach Image" class="p-2 text-gray-400 hover:text-purple-400 rounded-lg hover:bg-gray-800 transition text-sm">
+                                    <i class="fa-solid fa-paperclip"></i>
+                                </button>
+
+                                <button type="button" onclick="triggerImageGenPrompt()" title="Generate AI Image" class="p-2 text-gray-400 hover:text-pink-400 rounded-lg hover:bg-gray-800 transition text-sm">
+                                    <i class="fa-solid fa-palette"></i>
+                                </button>
+
+                                <button type="button" id="micBtn" onclick="toggleVoiceInput()" title="Voice Dictation" class="p-2 text-gray-400 hover:text-blue-400 rounded-lg hover:bg-gray-800 transition text-sm">
+                                    <i class="fa-solid fa-microphone"></i>
+                                </button>
+
+                                <!-- Magic Prompt Enhancer Button -->
+                                <button type="button" id="enhanceBtn" onclick="enhanceUserPrompt()" title="✨ Enhance Draft Prompt with Gemini" class="px-2.5 py-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 text-xs font-semibold flex items-center gap-1.5 transition border border-purple-500/30">
+                                    <span>✨ Enhance Prompt</span>
+                                </button>
+                            </div>
+
+                            <!-- Right Submit -->
+                            <div class="flex items-center gap-2">
+                                <span id="charCounter" class="text-[10px] text-gray-500 hidden sm:inline">0 chars</span>
+                                <button type="submit" id="sendBtn" class="w-9 h-9 rounded-xl bg-raki-gradient hover:opacity-90 transition flex items-center justify-center text-white disabled:opacity-40 disabled:cursor-not-allowed shadow-md">
+                                    <i class="fa-solid fa-paper-plane text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <div class="text-[11px] text-center text-gray-500 mt-1">
+                        <span>RAKI AI powered by Gemini 2.5 Flash & Imagen 4</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODALS -->
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-gemini-card border border-gemini-border rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl relative">
+            <button onclick="closeSettingsModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="flex items-center gap-3 border-b border-gemini-border pb-3">
+                <div class="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center">
+                    <i class="fa-solid fa-sliders"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-gray-100">RAKI AI Settings</h3>
+                    <p class="text-xs text-gray-400">Configure parameters and voice output</p>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1">Custom Gemini API Key (Optional)</label>
+                    <input type="password" id="customApiKey" placeholder="Leave empty to use automatic key" class="w-full bg-gemini-bg border border-gemini-border rounded-xl px-3 py-2 text-xs text-gray-100 outline-none focus:border-purple-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1">Gemini TTS Voice</label>
+                    <select id="ttsVoiceSelect" class="w-full bg-gemini-bg border border-gemini-border rounded-xl px-3 py-2 text-xs text-gray-100 outline-none focus:border-purple-500">
+                        <option value="Zephyr">Zephyr (Bright)</option>
+                        <option value="Puck">Puck (Upbeat)</option>
+                        <option value="Charon">Charon (Informative)</option>
+                        <option value="Kore">Kore (Firm)</option>
+                        <option value="Fenrir">Fenrir (Excitable)</option>
+                        <option value="Aoede">Aoede (Breezy)</option>
+                    </select>
+                </div>
+
+                <div class="pt-2 border-t border-gemini-border flex justify-end gap-2">
+                    <button onclick="closeSettingsModal()" class="px-4 py-2 rounded-xl bg-gray-800 text-gray-300 hover:text-white text-xs font-medium">Cancel</button>
+                    <button onclick="saveSettings()" class="px-4 py-2 rounded-xl bg-raki-gradient text-white text-xs font-semibold shadow-lg">Save Settings</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Persona Modal -->
+    <div id="personaModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-gemini-card border border-gemini-border rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl relative">
+            <button onclick="closePersonaModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="flex items-center gap-3 border-b border-gemini-border pb-3">
+                <div class="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center">
+                    <i class="fa-solid fa-user-gear"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-gray-100">System Persona Instructions</h3>
+                    <p class="text-xs text-gray-400">Customize default behavior for RAKI AI</p>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1">Preset Persona</label>
+                    <select id="personaPresetSelect" onchange="applyPersonaPreset()" class="w-full bg-gemini-bg border border-gemini-border rounded-xl px-3 py-2 text-xs text-gray-100 outline-none focus:border-purple-500">
+                        <option value="default">RAKI AI - Helpful & Smart (Default)</option>
+                        <option value="coder">Senior Software Architect</option>
+                        <option value="creative">Creative Storyteller & Copywriter</option>
+                        <option value="teacher">Socratic Math & Science Tutor</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1">System Instructions</label>
+                    <textarea id="systemPromptText" rows="4" class="w-full bg-gemini-bg border border-gemini-border rounded-xl p-3 text-xs text-gray-100 outline-none focus:border-purple-500 resize-none"></textarea>
+                </div>
+
+                <div class="pt-2 border-t border-gemini-border flex justify-end gap-2">
+                    <button onclick="closePersonaModal()" class="px-4 py-2 rounded-xl bg-gray-800 text-gray-300 hover:text-white text-xs font-medium">Cancel</button>
+                    <button onclick="savePersona()" class="px-4 py-2 rounded-xl bg-raki-gradient text-white text-xs font-semibold shadow-lg">Save Persona</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Quiz Modal (Structured JSON Feature) -->
+    <div id="quizModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-gemini-card border border-gemini-border rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button onclick="closeQuizModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="flex items-center gap-3 border-b border-gemini-border pb-3">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-gray-100">✨ Interactive AI Knowledge Check</h3>
+                    <p class="text-xs text-gray-400">Generated dynamically from your current chat session</p>
+                </div>
+            </div>
+
+            <div id="quizContent" class="space-y-6">
+                <!-- Quiz questions dynamically rendered -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Modal Lightbox -->
+    <div id="imageLightbox" class="fixed inset-0 bg-black/90 z-50 hidden flex items-center justify-center p-4" onclick="closeLightbox()">
+        <img id="lightboxImg" class="max-w-full max-h-full object-contain rounded-xl shadow-2xl">
+    </div>
+
+    <!-- JAVASCRIPT APPLICATION -->
+    <script>
+        // GLOBAL APP STATE
+        const STATE = {
+            chats: [],
+            currentChatId: null,
+            model: 'gemini-2.5-flash-preview-09-2025',
+            searchEnabled: false,
+            apiKey: '',
+            ttsVoice: 'Zephyr',
+            systemPrompt: 'You are RAKI AI, an intelligent, empathetic AI assistant powered by Google Gemini technology. Provide comprehensive, beautifully structured markdown responses.',
+            attachment: null,
+            isGenerating: false,
+            recognition: null
+        };
+
+        // INITIALIZATION
+        window.addEventListener('DOMContentLoaded', () => {
+            loadStateFromStorage();
+            if (STATE.chats.length === 0) {
+                createNewChat();
+            } else {
+                renderHistoryList();
+                loadChat(STATE.chats[0].id);
+            }
+
+            const inputEl = document.getElementById('userInput');
+            inputEl.addEventListener('input', () => {
+                inputEl.style.height = 'auto';
+                inputEl.style.height = Math.min(inputEl.scrollHeight, 192) + 'px';
+                document.getElementById('charCounter').innerText = `${inputEl.value.length} chars`;
+            });
+
+            marked.setOptions({
+                highlight: function(code, lang) {
+                    if (lang && hljs.getLanguage(lang)) {
+                        return hljs.highlight(code, { language: lang }).value;
+                    }
+                    return hljs.highlightAuto(code).value;
+                },
+                breaks: true
+            });
+        });
+
+        function saveStateToStorage() {
+            localStorage.setItem('raki_chats', JSON.stringify(STATE.chats));
+            localStorage.setItem('raki_active_id', STATE.currentChatId);
+            localStorage.setItem('raki_api_key', STATE.apiKey);
+            localStorage.setItem('raki_system_prompt', STATE.systemPrompt);
+            localStorage.setItem('raki_tts_voice', STATE.ttsVoice);
+        }
+
+        function loadStateFromStorage() {
+            const savedChats = localStorage.getItem('raki_chats');
+            if (savedChats) {
+                try { STATE.chats = JSON.parse(savedChats); } catch (e) { STATE.chats = []; }
+            }
+            STATE.apiKey = localStorage.getItem('raki_api_key') || '';
+            STATE.systemPrompt = localStorage.getItem('raki_system_prompt') || STATE.systemPrompt;
+            STATE.ttsVoice = localStorage.getItem('raki_tts_voice') || 'Zephyr';
+            document.getElementById('customApiKey').value = STATE.apiKey;
+            document.getElementById('systemPromptText').value = STATE.systemPrompt;
+            document.getElementById('ttsVoiceSelect').value = STATE.ttsVoice;
+        }
+
+        // CHAT HISTORY MANAGEMENT
+        function createNewChat() {
+            const newChat = {
+                id: 'chat_' + Date.now(),
+                title: 'New Conversation',
+                timestamp: Date.now(),
+                messages: []
+            };
+            STATE.chats.unshift(newChat);
+            STATE.currentChatId = newChat.id;
+            saveStateToStorage();
+            renderHistoryList();
+            renderCurrentChatMessages();
+            closeSidebarMobile();
+        }
+
+        function loadChat(chatId) {
+            STATE.currentChatId = chatId;
+            saveStateToStorage();
+            renderHistoryList();
+            renderCurrentChatMessages();
+            closeSidebarMobile();
+        }
+
+        function deleteChat(chatId, e) {
+            e.stopPropagation();
+            STATE.chats = STATE.chats.filter(c => c.id !== chatId);
+            if (STATE.currentChatId === chatId) {
+                STATE.currentChatId = STATE.chats.length > 0 ? STATE.chats[0].id : null;
+            }
+            if (!STATE.currentChatId) {
+                createNewChat();
+            } else {
+                saveStateToStorage();
+                renderHistoryList();
+                renderCurrentChatMessages();
+            }
+        }
+
+        function clearAllHistory() {
+            if (confirm('Clear all conversation history?')) {
+                STATE.chats = [];
+                saveStateToStorage();
+                createNewChat();
+            }
+        }
+
+        function getCurrentChat() {
+            return STATE.chats.find(c => c.id === STATE.currentChatId);
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobileOverlay');
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        }
+
+        function closeSidebarMobile() {
+            if (window.innerWidth < 768) {
+                document.getElementById('sidebar').classList.add('-translate-x-full');
+                document.getElementById('mobileOverlay').classList.add('hidden');
+            }
+        }
+
+        function renderHistoryList() {
+            const container = document.getElementById('chatHistoryList');
+            container.innerHTML = '<div class="text-xs font-semibold text-gray-500 px-3 py-2 uppercase tracking-wider">Recent Chats</div>';
+
+            if (STATE.chats.length === 0) {
+                container.innerHTML += '<div class="text-xs text-gray-500 px-3 py-2 italic">No active conversations</div>';
+                return;
+            }
+
+            STATE.chats.forEach(chat => {
+                const isActive = chat.id === STATE.currentChatId;
+                const div = document.createElement('div');
+                div.className = `group flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer text-xs font-medium transition ${isActive ? 'bg-gemini-card text-white border border-gemini-border shadow-sm' : 'text-gray-400 hover:bg-gray-800/60 hover:text-gray-200'}`;
+                div.onclick = () => loadChat(chat.id);
+
+                div.innerHTML = `
+                    <div class="flex items-center gap-2.5 truncate flex-1 pr-2">
+                        <i class="fa-regular fa-message ${isActive ? 'text-purple-400' : 'text-gray-500'} text-xs"></i>
+                        <span class="truncate">${escapeHtml(chat.title)}</span>
+                    </div>
+                    <button onclick="deleteChat('${chat.id}', event)" class="opacity-0 group-hover:opacity-100 p-1 text-gray-500 hover:text-red-400 rounded transition">
+                        <i class="fa-solid fa-trash-can text-[11px]"></i>
+                    </button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function switchModel(modelId, label) {
+            STATE.model = modelId;
+            document.getElementById('currentModelLabel').innerText = label;
+        }
+
+        function toggleWebSearch() {
+            STATE.searchEnabled = !STATE.searchEnabled;
+            const btn = document.getElementById('searchToggleBtn');
+            const badge = document.getElementById('searchStatusBadge');
+            
+            if (STATE.searchEnabled) {
+                btn.className = "flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium transition-all bg-blue-500/10 border-blue-500/50 text-blue-400 shadow-sm shadow-blue-500/10";
+                badge.className = "text-[9px] px-1.5 py-0.2 rounded bg-blue-500 text-white font-bold";
+                badge.innerText = "ON";
+            } else {
+                btn.className = "flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium transition-all bg-gray-900 border-gray-700 text-gray-400 hover:text-gray-200";
+                badge.className = "text-[9px] px-1.5 py-0.2 rounded bg-gray-800 text-gray-400";
+                badge.innerText = "OFF";
+            }
+        }
+
+        // RENDER CHAT MESSAGES
+        function renderCurrentChatMessages() {
+            const chat = getCurrentChat();
+            const welcomeHero = document.getElementById('welcomeHero');
+            const messagesLog = document.getElementById('messagesLog');
+
+            if (!chat || chat.messages.length === 0) {
+                welcomeHero.classList.remove('hidden');
+                messagesLog.classList.add('hidden');
+                messagesLog.innerHTML = '';
+                return;
+            }
+
+            welcomeHero.classList.add('hidden');
+            messagesLog.classList.remove('hidden');
+            messagesLog.innerHTML = '';
+
+            chat.messages.forEach((msg, idx) => {
+                const msgEl = createMessageElement(msg, idx);
+                messagesLog.appendChild(msgEl);
+            });
+
+            scrollToBottom();
+        }
+
+        function createMessageElement(msg, idx) {
+            const isUser = msg.role === 'user';
+            const wrapper = document.createElement('div');
+            wrapper.className = `flex gap-4 ${isUser ? 'justify-end' : 'justify-start'}`;
+
+            const parsedContent = isUser ? escapeHtml(msg.text) : marked.parse(msg.text);
+
+            let attachmentHtml = '';
+            if (msg.image) {
+                attachmentHtml = `<div class="mb-3"><img src="${msg.image}" onclick="openLightbox('${msg.image}')" class="max-w-xs max-h-60 rounded-xl object-cover border border-gemini-border cursor-pointer hover:opacity-90 transition"></div>`;
+            }
+
+            let sourcesHtml = '';
+            if (msg.sources && msg.sources.length > 0) {
+                sourcesHtml = `
+                    <div class="mt-3 pt-3 border-t border-gemini-border/50 text-xs">
+                        <div class="text-[11px] font-semibold text-gray-400 mb-1.5 flex items-center gap-1.5">
+                            <i class="fa-solid fa-globe text-blue-400"></i> Grounded Web Sources:
+                        </div>
+                        <div class="flex flex-wrap gap-1.5">
+                            ${msg.sources.map(src => `<a href="${src.uri}" target="_blank" class="px-2 py-1 rounded-lg bg-gray-800 hover:bg-gray-700 text-blue-400 border border-gemini-border text-[10px] truncate max-w-[200px] flex items-center gap-1"><i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i> ${escapeHtml(src.title || src.uri)}</a>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (isUser) {
+                wrapper.innerHTML = `
+                    <div class="flex gap-3 max-w-[85%] sm:max-w-[75%] items-start">
+                        <div class="flex flex-col items-end">
+                            <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl rounded-tr-xs px-4 py-3 text-sm shadow-md">
+                                ${attachmentHtml}
+                                <p class="whitespace-pre-wrap">${parsedContent}</p>
+                            </div>
+                            <span class="text-[10px] text-gray-500 mt-1">${formatTime(msg.timestamp)}</span>
+                        </div>
+                        <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-200 shrink-0">
+                            U
+                        </div>
+                    </div>
+                `;
+            } else {
+                wrapper.innerHTML = `
+                    <div class="flex gap-3 max-w-[95%] sm:max-w-[85%] items-start">
+                        <div class="w-8 h-8 rounded-xl bg-raki-gradient flex items-center justify-center text-white text-xs font-black shrink-0 shadow-lg shadow-purple-500/20 mt-1">
+                            R
+                        </div>
+                        <div class="flex-1 bg-gemini-card border border-gemini-border rounded-2xl rounded-tl-xs p-4 text-sm text-gray-100 shadow-lg overflow-hidden">
+                            ${attachmentHtml}
+                            <div class="prose prose-invert max-w-none text-gray-200 leading-relaxed">${parsedContent}</div>
+                            ${sourcesHtml}
+                            
+                            <!-- Gemini Quick Actions Bar for Response -->
+                            <div class="flex flex-wrap items-center gap-2 mt-4 pt-3 border-t border-gemini-border/40 text-gray-400 text-xs">
+                                <button onclick="copyToClipboard(\`${escapeForCode(msg.text)}\`)" title="Copy text" class="p-1 hover:text-purple-400 transition">
+                                    <i class="fa-regular fa-copy"></i>
+                                </button>
+                                <button onclick="speakText(\`${escapeForCode(msg.text)}\`)" title="Read Aloud TTS" class="p-1 hover:text-blue-400 transition">
+                                    <i class="fa-solid fa-volume-high"></i>
+                                </button>
+
+                                <div class="h-3 w-px bg-gemini-border mx-1"></div>
+
+                                <!-- Gemini LLM In-Line Actions -->
+                                <button onclick="transformMessage(${idx}, 'simplify')" class="px-2 py-0.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 text-[10px] transition">
+                                    ✨ Simplify
+                                </button>
+                                <button onclick="transformMessage(${idx}, 'elaborate')" class="px-2 py-0.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 text-[10px] transition">
+                                    ✨ Elaborate
+                                </button>
+
+                                <span class="text-[10px] text-gray-500 ml-auto">${formatTime(msg.timestamp)}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            return wrapper;
+        }
+
+        // CHAT SUBMISSION
+        async function handleChatSubmit(e) {
+            e.preventDefault();
+            if (STATE.isGenerating) return;
+
+            const inputEl = document.getElementById('userInput');
+            const prompt = inputEl.value.trim();
+            if (!prompt && !STATE.attachment) return;
+
+            const chat = getCurrentChat();
+            if (!chat) return;
+
+            if (chat.messages.length === 0) {
+                chat.title = prompt.length > 25 ? prompt.substring(0, 25) + '...' : prompt || 'Visual Analysis';
+                renderHistoryList();
+            }
+
+            const userMsg = {
+                role: 'user',
+                text: prompt,
+                image: STATE.attachment ? STATE.attachment.data : null,
+                timestamp: Date.now()
+            };
+
+            chat.messages.push(userMsg);
+            const currentAttachment = STATE.attachment;
+            removeAttachment();
+            
+            inputEl.value = '';
+            inputEl.style.height = 'auto';
+            document.getElementById('charCounter').innerText = '0 chars';
+
+            renderCurrentChatMessages();
+            STATE.isGenerating = true;
+            toggleSendButton(false);
+
+            const loadingMsgId = 'loading_' + Date.now();
+            appendLoadingPlaceholder(loadingMsgId);
+
+            try {
+                if (prompt.startsWith('/image') || STATE.model === 'imagen-4.0-generate-001') {
+                    const cleanPrompt = prompt.replace('/image', '').trim() || "An artistic masterpiece";
+                    const imageUrl = await generateImagen4(cleanPrompt);
+                    
+                    removeLoadingPlaceholder(loadingMsgId);
+                    chat.messages.push({
+                        role: 'assistant',
+                        text: `Here is your generated artwork for prompt: **"${cleanPrompt}"**`,
+                        image: imageUrl,
+                        timestamp: Date.now()
+                    });
+                } else {
+                    const responseData = await callGeminiTextAPI(chat.messages, currentAttachment);
+                    removeLoadingPlaceholder(loadingMsgId);
+
+                    chat.messages.push({
+                        role: 'assistant',
+                        text: responseData.text,
+                        sources: responseData.sources || [],
+                        timestamp: Date.now()
+                    });
+                }
+            } catch (err) {
+                console.error("Gemini API Error:", err);
+                removeLoadingPlaceholder(loadingMsgId);
+                chat.messages.push({
+                    role: 'assistant',
+                    text: `⚠️ **Error generating response:** ${err.message || 'Something went wrong.'}`,
+                    timestamp: Date.now()
+                });
+            } finally {
+                STATE.isGenerating = false;
+                toggleSendButton(true);
+                saveStateToStorage();
+                renderCurrentChatMessages();
+            }
+        }
+
+        // ✨ FEATURE: MAGIC PROMPT ENHANCER
+        async function enhanceUserPrompt() {
+            const inputEl = document.getElementById('userInput');
+            const currentDraft = inputEl.value.trim();
+            if (!currentDraft) {
+                alert("Please write a draft prompt in the box first to enhance!");
+                return;
+            }
+
+            const btn = document.getElementById('enhanceBtn');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Optimizing...`;
+            btn.disabled = true;
+
+            try {
+                const apiKey = STATE.apiKey || "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+                const payload = {
+                    contents: [{
+                        parts: [{
+                            text: `Rewrite and expand the following user prompt to make it clear, detailed, and optimized for an AI language model. Output ONLY the enhanced prompt string without explanations:\n\nUser Prompt: "${currentDraft}"`
+                        }]
+                    }]
+                };
+
+                const response = await fetchWithRetry(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                const enhancedText = result.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+
+                if (enhancedText) {
+                    inputEl.value = enhancedText;
+                    inputEl.style.height = 'auto';
+                    inputEl.style.height = Math.min(inputEl.scrollHeight, 192) + 'px';
+                }
+            } catch (err) {
+                alert("Could not enhance prompt: " + err.message);
+            } finally {
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            }
+        }
+
+        // ✨ FEATURE: TRANSFORM USER DRAFT WITH PRESET QUICK ACTIONS
+        async function applyLLMTransform(mode) {
+            const inputEl = document.getElementById('userInput');
+            const text = inputEl.value.trim();
+            if (!text) {
+                alert("Type something into the input area first to transform!");
+                return;
+            }
+
+            let instruction = "";
+            if (mode === 'email') instruction = "Convert the following note into a well-structured, professional email:";
+            else if (mode === 'eli5') instruction = "Explain the following text simply so a 10-year-old can easily understand:";
+            else if (mode === 'grammar') instruction = "Fix all grammar, improve vocabulary, and polish tone for the following text:";
+
+            inputEl.value = `✨ ${instruction}\n\n"${text}"`;
+            inputEl.focus();
+        }
+
+        // ✨ FEATURE: IN-LINE MESSAGE TRANSFORMS
+        async function transformMessage(msgIdx, mode) {
+            const chat = getCurrentChat();
+            if (!chat || !chat.messages[msgIdx]) return;
+
+            const targetMsg = chat.messages[msgIdx];
+            let instruction = mode === 'simplify' ? 'Explain this in simpler terms with key bullet points:' : 'Elaborate on this with more technical depth and examples:';
+
+            const newPrompt = `✨ ${instruction}\n\n"${targetMsg.text}"`;
+            
+            const inputEl = document.getElementById('userInput');
+            inputEl.value = newPrompt;
+            handleChatSubmit(new Event('submit'));
+        }
+
+        // ✨ FEATURE: SUMMARIZE DISCUSSION / THREAD
+        async function runThreadSummary() {
+            const chat = getCurrentChat();
+            if (!chat || chat.messages.length === 0) {
+                alert("No active conversation to summarize yet!");
+                return;
+            }
+
+            const threadText = chat.messages.map(m => `${m.role.toUpperCase()}: ${m.text}`).join('\n\n');
+            const inputEl = document.getElementById('userInput');
+            inputEl.value = `✨ Summarize our discussion above into: 1) Executive Summary, 2) Key Decisions/Takeaways, and 3) Recommended Next Action Items.`;
+            handleChatSubmit(new Event('submit'));
+        }
+
+        // ✨ FEATURE: GENERATE INTERACTIVE AI QUIZ (Structured JSON Output)
+        async function generateQuizModal() {
+            const chat = getCurrentChat();
+            if (!chat || chat.messages.length < 2) {
+                alert("Have a conversation first so RAKI AI can generate a custom quiz based on your topic!");
+                return;
+            }
+
+            const modal = document.getElementById('quizModal');
+            const quizContent = document.getElementById('quizContent');
+            modal.classList.remove('hidden');
+            quizContent.innerHTML = `
+                <div class="flex flex-col items-center justify-center py-12 space-y-3">
+                    <div class="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                    <p class="text-sm text-gray-300">Gemini is parsing chat history & generating interactive quiz...</p>
+                </div>
+            `;
+
+            const threadText = chat.messages.map(m => `${m.role}: ${m.text}`).join('\n');
+
+            try {
+                const apiKey = STATE.apiKey || "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+                const payload = {
+                    contents: [{
+                        parts: [{
+                            text: `Based on the following conversation transcript, create a 3-question multiple choice knowledge quiz to test understanding:\n\n${threadText}`
+                        }]
+                    }],
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: {
+                                quizTitle: { type: "STRING" },
+                                questions: {
+                                    type: "ARRAY",
+                                    items: {
+                                        type: "OBJECT",
+                                        properties: {
+                                            question: { type: "STRING" },
+                                            options: { type: "ARRAY", items: { type: "STRING" } },
+                                            correctAnswerIndex: { type: "INTEGER" },
+                                            explanation: { type: "STRING" }
+                                        },
+                                        required: ["question", "options", "correctAnswerIndex", "explanation"]
+                                    }
+                                }
+                            },
+                            required: ["quizTitle", "questions"]
+                        }
+                    }
+                };
+
+                const response = await fetchWithRetry(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                const quizData = JSON.parse(jsonText);
+
+                renderQuizUI(quizData);
+            } catch (err) {
+                quizContent.innerHTML = `
+                    <div class="p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs">
+                        Failed to generate quiz: ${err.message}. Please try again!
+                    </div>
+                `;
+            }
+        }
+
+        function renderQuizUI(quizData) {
+            const quizContent = document.getElementById('quizContent');
+            quizContent.innerHTML = `<h4 class="text-sm font-bold text-purple-300">${escapeHtml(quizData.quizTitle)}</h4>`;
+
+            quizData.questions.forEach((q, qIdx) => {
+                const card = document.createElement('div');
+                card.className = "bg-gemini-bg p-4 rounded-xl border border-gemini-border space-y-3";
+                card.innerHTML = `
+                    <div class="font-medium text-xs text-gray-200">Q${qIdx + 1}: ${escapeHtml(q.question)}</div>
+                    <div class="space-y-2">
+                        ${q.options.map((opt, oIdx) => `
+                            <button onclick="checkQuizAnswer(${qIdx}, ${oIdx}, ${q.correctAnswerIndex}, '${escapeForCode(q.explanation)}')" id="q_${qIdx}_opt_${oIdx}" class="w-full text-left p-2.5 rounded-lg bg-gemini-card hover:bg-gray-800 border border-gemini-border text-xs text-gray-300 transition">
+                                ${escapeHtml(opt)}
+                            </button>
+                        `).join('')}
+                    </div>
+                    <div id="q_${qIdx}_feedback" class="hidden p-2.5 rounded-lg text-xs"></div>
+                `;
+                quizContent.appendChild(card);
+            });
+        }
+
+        function checkQuizAnswer(qIdx, selectedIdx, correctIdx, explanation) {
+            const feedbackEl = document.getElementById(`q_${qIdx}_feedback`);
+            feedbackEl.classList.remove('hidden');
+
+            for (let i = 0; i < 4; i++) {
+                const btn = document.getElementById(`q_${qIdx}_opt_${i}`);
+                if (btn) btn.disabled = true;
+            }
+
+            if (selectedIdx === correctIdx) {
+                feedbackEl.className = "p-2.5 rounded-lg text-xs bg-emerald-500/10 border border-emerald-500/30 text-emerald-300";
+                feedbackEl.innerHTML = `<strong>Correct! 🎉</strong> ${escapeHtml(explanation)}`;
+            } else {
+                feedbackEl.className = "p-2.5 rounded-lg text-xs bg-red-500/10 border border-red-500/30 text-red-300";
+                feedbackEl.innerHTML = `<strong>Incorrect.</strong> ${escapeHtml(explanation)}`;
+            }
+        }
+
+        function closeQuizModal() {
+            document.getElementById('quizModal').classList.add('hidden');
+        }
+
+        // GEMINI LLM TEXT & VISION CALLER
+        async function callGeminiTextAPI(messages, attachment) {
+            const apiKey = STATE.apiKey || "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+            const contents = messages.map(m => {
+                const parts = [];
+                if (m.text) parts.push({ text: m.text });
+                return {
+                    role: m.role === 'assistant' ? 'model' : 'user',
+                    parts: parts
+                };
+            });
+
+            if (attachment && contents.length > 0) {
+                const lastTurn = contents[contents.length - 1];
+                const base64Clean = attachment.data.split(',')[1];
+                lastTurn.parts.push({
+                    inlineData: {
+                        mimeType: attachment.mimeType,
+                        data: base64Clean
+                    }
+                });
+            }
+
+            const payload = {
+                contents: contents,
+                systemInstruction: {
+                    parts: [{ text: STATE.systemPrompt }]
+                }
+            };
+
+            if (STATE.searchEnabled) {
+                payload.tools = [{ "google_search": {} }];
+            }
+
+            const response = await fetchWithRetry(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+            const candidate = result.candidates?.[0];
+
+            if (!candidate) throw new Error("Empty response from Gemini.");
+
+            const text = candidate.content?.parts?.[0]?.text || "No response received.";
+            
+            let sources = [];
+            const groundingMetadata = candidate.groundingMetadata;
+            if (groundingMetadata && groundingMetadata.groundingAttributions) {
+                sources = groundingMetadata.groundingAttributions
+                    .map(attr => ({
+                        uri: attr.web?.uri,
+                        title: attr.web?.title
+                    }))
+                    .filter(s => s.uri && s.title);
+            }
+
+            return { text, sources };
+        }
+
+        // IMAGEN 4 API
+        async function generateImagen4(promptText) {
+            const apiKey = STATE.apiKey || "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`;
+
+            const payload = {
+                instances: [{ prompt: promptText }],
+                parameters: { sampleCount: 1 }
+            };
+
+            const response = await fetchWithRetry(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+            const base64Bytes = result?.predictions?.[0]?.bytesBase64Encoded;
+
+            if (!base64Bytes) {
+                throw new Error("Imagen generation failed.");
+            }
+
+            return `data:image/png;base64,${base64Bytes}`;
+        }
+
+        // GEMINI TTS SPEECH SYNTHESIS
+        async function speakText(text) {
+            const cleanText = text.replace(/[*#_`]/g, '').substring(0, 300);
+            const apiKey = STATE.apiKey || "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+
+            const payload = {
+                contents: [{
+                    parts: [{ text: `Say cheerfully: ${cleanText}` }]
+                }],
+                generationConfig: {
+                    responseModalities: ["AUDIO"],
+                    speechConfig: {
+                        voiceConfig: {
+                            prebuiltVoiceConfig: { voiceName: STATE.ttsVoice }
+                        }
+                    }
+                }
+            };
+
+            try {
+                const response = await fetchWithRetry(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                const part = result?.candidates?.[0]?.content?.parts?.[0];
+                const audioData = part?.inlineData?.data;
+                const mimeType = part?.inlineData?.mimeType;
+
+                if (audioData && mimeType) {
+                    const sampleRate = parseInt(mimeType.match(/rate=(\d+)/)?.[1] || "24000", 10);
+                    const pcmData = base64ToArrayBuffer(audioData);
+                    const pcm16 = new Int16Array(pcmData);
+                    const wavBlob = pcmToWav(pcm16, sampleRate);
+                    const audioUrl = URL.createObjectURL(wavBlob);
+                    
+                    const audio = new Audio(audioUrl);
+                    audio.play();
+                } else {
+                    window.speechSynthesis.cancel();
+                    const utterance = new SpeechSynthesisUtterance(cleanText);
+                    window.speechSynthesis.speak(utterance);
+                }
+            } catch (e) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(cleanText);
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function pcmToWav(pcm16, sampleRate) {
+            const buffer = new ArrayBuffer(44 + pcm16.length * 2);
+            const view = new DataView(buffer);
+
+            writeString(view, 0, 'RIFF');
+            view.setUint32(4, 36 + pcm16.length * 2, true);
+            writeString(view, 8, 'WAVE');
+            writeString(view, 12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, 1, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * 2, true);
+            view.setUint16(32, 2, true);
+            view.setUint16(34, 16, true);
+            writeString(view, 36, 'data');
+            view.setUint32(40, pcm16.length * 2, true);
+
+            for (let i = 0; i < pcm16.length; i++) {
+                view.setInt16(44 + i * 2, pcm16[i], true);
+            }
+
+            return new Blob([buffer], { type: 'audio/wav' });
+        }
+
+        function writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+
+        function base64ToArrayBuffer(base64) {
+            const binaryString = window.atob(base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        async function fetchWithRetry(url, options, retries = 3, delay = 1000) {
+            try {
+                const res = await fetch(url, options);
+                if (!res.ok) {
+                    if (res.status === 429 && retries > 0) {
+                        await new Promise(r => setTimeout(r, delay));
+                        return fetchWithRetry(url, options, retries - 1, delay * 2);
+                    }
+                    const errObj = await res.json().catch(() => ({}));
+                    throw new Error(errObj.error?.message || `HTTP ${res.status}`);
+                }
+                return res;
+            } catch (err) {
+                if (retries > 0) {
+                    await new Promise(r => setTimeout(r, delay));
+                    return fetchWithRetry(url, options, retries - 1, delay * 2);
+                }
+                throw err;
+            }
+        }
+
+        // ATTACHMENT & VOICE UTILS
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) {
+                alert('Please upload an image file.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                STATE.attachment = {
+                    mimeType: file.type,
+                    data: evt.target.result
+                };
+                document.getElementById('attachmentThumb').src = evt.target.result;
+                document.getElementById('attachmentName').innerText = file.name;
+                document.getElementById('attachmentPreview').classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeAttachment() {
+            STATE.attachment = null;
+            document.getElementById('attachmentPreview').classList.add('hidden');
+            document.getElementById('imageFileInput').value = '';
+        }
+
+        function triggerImageGenPrompt() {
+            const input = document.getElementById('userInput');
+            input.value = '/image ';
+            input.focus();
+        }
+
+        function toggleVoiceInput() {
+            const micBtn = document.getElementById('micBtn');
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+            if (!SpeechRecognition) {
+                alert('Speech recognition is not supported in this browser.');
+                return;
+            }
+
+            if (STATE.recognition) {
+                STATE.recognition.stop();
+                STATE.recognition = null;
+                micBtn.classList.remove('text-red-500', 'animate-pulse');
+                return;
+            }
+
+            STATE.recognition = new SpeechRecognition();
+            STATE.recognition.continuous = false;
+
+            STATE.recognition.onstart = () => {
+                micBtn.classList.add('text-red-500', 'animate-pulse');
+            };
+
+            STATE.recognition.onresult = (e) => {
+                const transcript = e.results[0][0].transcript;
+                const input = document.getElementById('userInput');
+                input.value += (input.value ? ' ' : '') + transcript;
+                micBtn.classList.remove('text-red-500', 'animate-pulse');
+                STATE.recognition = null;
+            };
+
+            STATE.recognition.onerror = () => {
+                micBtn.classList.remove('text-red-500', 'animate-pulse');
+                STATE.recognition = null;
+            };
+
+            STATE.recognition.start();
+        }
+
+        // DOM HELPERS
+        function handleKeyDown(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleChatSubmit(e);
+            }
+        }
+
+        function usePrompt(text) {
+            const input = document.getElementById('userInput');
+            input.value = text;
+            input.focus();
+        }
+
+        function appendLoadingPlaceholder(id) {
+            const messagesLog = document.getElementById('messagesLog');
+            const wrapper = document.createElement('div');
+            wrapper.id = id;
+            wrapper.className = 'flex gap-3 justify-start animate-fadeIn';
+            wrapper.innerHTML = `
+                <div class="w-8 h-8 rounded-xl bg-raki-gradient flex items-center justify-center text-white text-xs font-black shrink-0 shadow-lg shadow-purple-500/20 mt-1">
+                    R
+                </div>
+                <div class="bg-gemini-card border border-gemini-border rounded-2xl rounded-tl-xs p-4 text-sm text-gray-400 flex items-center gap-3">
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></span>
+                        <span class="w-2 h-2 bg-blue-400 rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                        <span class="w-2 h-2 bg-pink-400 rounded-full animate-bounce [animation-delay:0.4s]"></span>
+                    </div>
+                    <span class="text-xs">RAKI AI is processing...</span>
+                </div>
+            `;
+            messagesLog.appendChild(wrapper);
+            scrollToBottom();
+        }
+
+        function removeLoadingPlaceholder(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+
+        function toggleSendButton(enabled) {
+            document.getElementById('sendBtn').disabled = !enabled;
+        }
+
+        function scrollToBottom() {
+            const chatContainer = document.getElementById('chatContainer');
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function copyToClipboard(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+        }
+
+        function exportChat() {
+            const chat = getCurrentChat();
+            if (!chat || chat.messages.length === 0) return;
+
+            let markdown = `# ${chat.title}\n\n`;
+            chat.messages.forEach(m => {
+                markdown += `### ${m.role === 'user' ? 'User' : 'RAKI AI'} (${formatTime(m.timestamp)})\n${m.text}\n\n`;
+            });
+
+            const blob = new Blob([markdown], { type: 'text/markdown' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `${chat.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.md`;
+            a.click();
+        }
+
+        function openSettingsModal() { document.getElementById('settingsModal').classList.remove('hidden'); }
+        function closeSettingsModal() { document.getElementById('settingsModal').classList.add('hidden'); }
+        function saveSettings() {
+            STATE.apiKey = document.getElementById('customApiKey').value.trim();
+            STATE.ttsVoice = document.getElementById('ttsVoiceSelect').value;
+            saveStateToStorage();
+            closeSettingsModal();
+        }
+
+        function openPersonaModal() { document.getElementById('personaModal').classList.remove('hidden'); }
+        function closePersonaModal() { document.getElementById('personaModal').classList.add('hidden'); }
+        function applyPersonaPreset() {
+            const val = document.getElementById('personaPresetSelect').value;
+            const textarea = document.getElementById('systemPromptText');
+            if (val === 'default') {
+                textarea.value = 'You are RAKI AI, an intelligent, empathetic AI assistant powered by Google Gemini technology. Provide comprehensive, beautifully structured markdown responses.';
+            } else if (val === 'coder') {
+                textarea.value = 'You are RAKI AI acting as a Senior Software Architect. Provide production-ready code with concise technical explanations.';
+            } else if (val === 'creative') {
+                textarea.value = 'You are RAKI AI acting as a master creative writer and copywriter. Craft vivid, compelling narratives with rich imaginative tone.';
+            } else if (val === 'teacher') {
+                textarea.value = 'You are RAKI AI acting as a Socratic math and science tutor. Guide users step by step with clear explanations and real-world analogies.';
+            }
+        }
+        function savePersona() {
+            STATE.systemPrompt = document.getElementById('systemPromptText').value.trim() || STATE.systemPrompt;
+            saveStateToStorage();
+            closePersonaModal();
+        }
+
+        function openLightbox(src) {
+            document.getElementById('lightboxImg').src = src;
+            document.getElementById('imageLightbox').classList.remove('hidden');
+        }
+        function closeLightbox() {
+            document.getElementById('imageLightbox').classList.add('hidden');
+        }
+
+        function escapeHtml(str) {
+            return (str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        function escapeForCode(str) {
+            return (str || '').replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$');
+        }
+
+        function formatTime(timestamp) {
+            if (!timestamp) return '';
+            return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+    </script>
+</body>
+</html>
